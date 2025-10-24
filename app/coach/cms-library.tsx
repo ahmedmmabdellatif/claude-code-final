@@ -10,7 +10,24 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Plus, Search, X, Dumbbell, Utensils, Edit2, Trash2 } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Plus,
+  Search,
+  X,
+  Dumbbell,
+  Utensils,
+  Edit2,
+  Trash2,
+  Flame,
+  Activity,
+  Wind,
+  Heart,
+  Apple,
+  ChefHat,
+  Pill,
+  Droplet
+} from 'lucide-react-native';
 import { Card, Button, Input, showToast, SkeletonList, EmptyState } from '@/components';
 import { trpc } from '@/lib/trpc';
 import { hapticFeedback } from '@/utils/haptics';
@@ -18,7 +35,26 @@ import colors from '@/constants/colors';
 import typography from '@/constants/typography';
 import spacing from '@/constants/spacing';
 
-type LibraryTab = 'exercises' | 'foods';
+type LibraryTab =
+  | 'warmup'
+  | 'workout'
+  | 'stretching'
+  | 'cardio'
+  | 'nutrition'
+  | 'recipes'
+  | 'supplements'
+  | 'hydration';
+
+const TAB_CONFIG = [
+  { key: 'warmup' as LibraryTab, label: 'Warmup', icon: Flame, color: colors.semantic.warning },
+  { key: 'workout' as LibraryTab, label: 'Workout', icon: Dumbbell, color: colors.accent.primary },
+  { key: 'stretching' as LibraryTab, label: 'Stretching', icon: Wind, color: colors.accent.tertiary },
+  { key: 'cardio' as LibraryTab, label: 'Cardio', icon: Heart, color: colors.semantic.error },
+  { key: 'nutrition' as LibraryTab, label: 'Nutrition', icon: Apple, color: colors.semantic.success },
+  { key: 'recipes' as LibraryTab, label: 'Recipes', icon: ChefHat, color: colors.accent.secondary },
+  { key: 'supplements' as LibraryTab, label: 'Supplements', icon: Pill, color: colors.accent.tertiary },
+  { key: 'hydration' as LibraryTab, label: 'Hydration', icon: Droplet, color: colors.accent.primary },
+];
 
 interface Exercise {
   id: number;
@@ -373,7 +409,7 @@ function FoodModal({
 }
 
 export default function CMSLibraryScreen() {
-  const [activeTab, setActiveTab] = useState<LibraryTab>('exercises');
+  const [activeTab, setActiveTab] = useState<LibraryTab>('warmup');
   const [searchQuery, setSearchQuery] = useState('');
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [showFoodModal, setShowFoodModal] = useState(false);
@@ -507,52 +543,42 @@ export default function CMSLibraryScreen() {
         <Text style={styles.headerTitle}>CMS Library</Text>
       </View>
 
-      <View style={styles.tabs}>
-        <Pressable
-          style={[styles.tab, activeTab === 'exercises' && styles.tabActive]}
-          onPress={() => {
-            setActiveTab('exercises');
-            hapticFeedback.light();
-          }}
-        >
-          <Dumbbell
-            size={20}
-            color={activeTab === 'exercises' ? colors.text.primary : colors.text.secondary}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'exercises' && styles.tabTextActive,
-            ]}
-          >
-            Exercises
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.tab, activeTab === 'foods' && styles.tabActive]}
-          onPress={() => {
-            setActiveTab('foods');
-            hapticFeedback.light();
-          }}
-        >
-          <Utensils
-            size={20}
-            color={activeTab === 'foods' ? colors.text.primary : colors.text.secondary}
-          />
-          <Text
-            style={[styles.tabText, activeTab === 'foods' && styles.tabTextActive]}
-          >
-            Foods
-          </Text>
-        </Pressable>
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabsScroll}
+        contentContainerStyle={styles.tabsContainer}
+      >
+        {TAB_CONFIG.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => {
+                setActiveTab(tab.key);
+                hapticFeedback.light();
+              }}
+            >
+              <Icon
+                size={20}
+                color={isActive ? colors.text.primary : colors.text.secondary}
+              />
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Search size={20} color={colors.text.secondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder={`Search ${activeTab}...`}
+            placeholder={`Search ${TAB_CONFIG.find(t => t.key === activeTab)?.label?.toLowerCase()}...`}
             placeholderTextColor={colors.text.secondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -579,56 +605,80 @@ export default function CMSLibraryScreen() {
         <SkeletonList count={5} />
       ) : (
         <ScrollView style={styles.content}>
-          <Text style={styles.resultsCount}>
-            {activeTab === 'exercises'
-              ? `${filteredExercises.length} exercise${filteredExercises.length !== 1 ? 's' : ''}`
-              : `${filteredFoods.length} food${filteredFoods.length !== 1 ? 's' : ''}`}
-          </Text>
-
-          {activeTab === 'exercises' ? (
-            filteredExercises.length === 0 ? (
-              <EmptyState
-                icon={Dumbbell}
-                title="No exercises found"
-                message="Add your first exercise to get started"
-                actionLabel="Add Exercise"
-                onAction={() => setShowExerciseModal(true)}
-              />
-            ) : (
-              filteredExercises.map((exercise) => (
-                <ExerciseCard
-                  key={exercise.id}
-                  exercise={exercise}
-                  onEdit={() => {
-                    hapticFeedback.light();
-                    setEditingExercise(exercise);
-                    setShowExerciseModal(true);
-                  }}
-                  onDelete={() => handleDeleteExercise(exercise.id)}
+          {activeTab === 'exercises' && (
+            <>
+              <Text style={styles.resultsCount}>
+                {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''}
+              </Text>
+              {filteredExercises.length === 0 ? (
+                <EmptyState
+                  icon={Dumbbell}
+                  title="No exercises found"
+                  message="Add your first exercise to get started"
+                  actionLabel="Add Exercise"
+                  onAction={() => setShowExerciseModal(true)}
                 />
-              ))
-            )
-          ) : filteredFoods.length === 0 ? (
-            <EmptyState
-              icon={Utensils}
-              title="No foods found"
-              message="Add your first food item to get started"
-              actionLabel="Add Food"
-              onAction={() => setShowFoodModal(true)}
-            />
-          ) : (
-            filteredFoods.map((food) => (
-              <FoodCard
-                key={food.id}
-                food={food}
-                onEdit={() => {
-                  hapticFeedback.light();
-                  setEditingFood(food);
-                  setShowFoodModal(true);
-                }}
-                onDelete={() => handleDeleteFood(food.id)}
-              />
-            ))
+              ) : (
+                filteredExercises.map((exercise) => (
+                  <ExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    onEdit={() => {
+                      hapticFeedback.light();
+                      setEditingExercise(exercise);
+                      setShowExerciseModal(true);
+                    }}
+                    onDelete={() => handleDeleteExercise(exercise.id)}
+                  />
+                ))
+              )}
+            </>
+          )}
+
+          {activeTab === 'foods' && (
+            <>
+              <Text style={styles.resultsCount}>
+                {filteredFoods.length} food{filteredFoods.length !== 1 ? 's' : ''}
+              </Text>
+              {filteredFoods.length === 0 ? (
+                <EmptyState
+                  icon={Utensils}
+                  title="No foods found"
+                  message="Add your first food item to get started"
+                  actionLabel="Add Food"
+                  onAction={() => setShowFoodModal(true)}
+                />
+              ) : (
+                filteredFoods.map((food) => (
+                  <FoodCard
+                    key={food.id}
+                    food={food}
+                    onEdit={() => {
+                      hapticFeedback.light();
+                      setEditingFood(food);
+                      setShowFoodModal(true);
+                    }}
+                    onDelete={() => handleDeleteFood(food.id)}
+                  />
+                ))
+              )}
+            </>
+          )}
+
+          {(activeTab === 'warmup' || activeTab === 'workout' || activeTab === 'stretching' ||
+            activeTab === 'cardio' || activeTab === 'nutrition' || activeTab === 'recipes' ||
+            activeTab === 'supplements' || activeTab === 'hydration') && (
+            <Card style={styles.comingSoonCard}>
+              <Text style={styles.comingSoonTitle}>
+                {TAB_CONFIG.find(t => t.key === activeTab)?.label} Section
+              </Text>
+              <Text style={styles.comingSoonText}>
+                Full CRUD interface coming soon. Backend API is ready and functional.
+              </Text>
+              <Text style={styles.comingSoonHint}>
+                Data is already seeded in the database and available via tRPC endpoints.
+              </Text>
+            </Card>
           )}
         </ScrollView>
       )}
@@ -677,21 +727,23 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginLeft: spacing.md,
   },
-  tabs: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.screen,
-    gap: spacing.md,
+  tabsScroll: {
     marginBottom: spacing.md,
   },
+  tabsContainer: {
+    paddingHorizontal: spacing.screen,
+    gap: spacing.md,
+  },
   tab: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     backgroundColor: colors.bg.surface,
     borderRadius: 12,
+    minWidth: 120,
   },
   tabActive: {
     backgroundColor: colors.accent.primary,
@@ -887,5 +939,28 @@ const styles = StyleSheet.create({
     padding: spacing.screen,
     borderTopWidth: 1,
     borderTopColor: colors.progress.bg,
+  },
+  comingSoonCard: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl * 2,
+    marginTop: spacing.xl,
+  },
+  comingSoonTitle: {
+    fontSize: typography.size.h2,
+    fontWeight: typography.weight.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
+  },
+  comingSoonText: {
+    fontSize: typography.size.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  comingSoonHint: {
+    fontSize: typography.size.small,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
