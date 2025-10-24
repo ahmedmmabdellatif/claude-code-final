@@ -57,6 +57,12 @@ export default function CoachLayout() {
         }}
       />
       <Tabs.Screen
+        name="create-client"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="client-profile"
         options={{
           href: null,
