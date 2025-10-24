@@ -1,0 +1,686 @@
+// Prisma schema for AI Fitness Coach App
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// USER MANAGEMENT
+// ================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  coachProfile   CoachProfile?
+  clientProfile  ClientProfile?
+  sentMessages   Message[]       @relation("SentMessages")
+  createdOffers  ProgramOffer[]
+  createdPlans   Plan[]
+  createdAlerts  Alert[]
+  typingStatuses TypingStatus[]
+  presenceStatus PresenceStatus?
+  pushTokens     PushToken[]
+
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  client
+  coach
+}
+
+model CoachProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  specialty   String?
+  yearsExp    Int?
+  certification String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  clients ClientProfile[] @relation("CoachClients")
+}
+
+model ClientProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coachId           String?
+  coach             CoachProfile? @relation("CoachClients", fields: [coachId], references: [id])
+  membershipNumber  String?   @unique
+  startDate         DateTime?
+  planStatus        PlanStatus @default(pending)
+  adherence         Float     @default(0)
+  lastCheckin       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relationships
+  onboarding        OnboardingData?
+  labels            ClientLabel[]
+  plans             Plan[]
+  goals             Goal[]
+  measurements      Measurement[]
+  questionnaires    QuestionnaireResponse[]
+  tasks             Task[]
+  progressPhotos    ProgressPhoto[]
+  subscriptions     Subscription[]
+
+  @@index([coachId])
+  @@index([planStatus])
+}
+
+enum PlanStatus {
+  pending
+  active
+  paused
+  completed
+  cancelled
+}
+
+// ================================
+// ONBOARDING
+// ================================
+
+model OnboardingData {
+  id                  String   @id @default(cuid())
+  clientId            String   @unique
+  client              ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Personal info
+  age                 Int?
+  height              Float?
+  weight              Float?
+  heightUnit          String?  @default("cm")
+  weightUnit          String?  @default("kg")
+  
+  // Goals & preferences
+  goal                String?
+  experience          String?
+  location            String?
+  frequency           Int?
+  
+  // Health info
+  injuries            String[]
+  medicalConditions   String[]
+  dietaryRestrictions String[]
+  dietType            String?
+  
+  // Photos
+  frontPhotoUrl       String?
+  sidePhotoUrl        String?
+  backPhotoUrl        String?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+model ClientLabel {
+  id              String        @id @default(cuid())
+  clientId        String
+  client          ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  category        LabelCategory
+  key             String
+  value           String
+  confidence      Float         @default(1.0)
+  source          String        @default("onboarding")
+  extractedAt     DateTime      @default(now())
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([clientId])
+  @@index([category])
+  @@index([key])
+  @@unique([clientId, category, key])
+}
+
+enum LabelCategory {
+  goal
+  health
+  preference
+  experience
+  constraint
+  metric
+}
+
+// ================================
+// PLANS & WORKOUTS
+// ================================
+
+model Plan {
+  id              String       @id @default(cuid())
+  clientId        String
+  client          ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coachId         String
+  coach           User         @relation(fields: [coachId], references: [id])
+  
+  name            String
+  description     String?
+  goal            String
+  version         Int          @default(1)
+  status          PlanVersionStatus @default(draft)
+  durationWeeks   Int
+  startDate       DateTime?
+  endDate         DateTime?
+  
+  // Plan structure stored as JSON
+  workoutDays     Json
+  mealPlan        Json?
+  
+  changes         String[]
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relationships
+  tasks           Task[]
+
+  @@index([clientId])
+  @@index([coachId])
+  @@index([status])
+  @@unique([clientId, version])
+}
+
+enum PlanVersionStatus {
+  draft
+  active
+  archived
+}
+
+model Task {
+  id              String       @id @default(cuid())
+  planId          String
+  plan            Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  type            TaskType
+  name            String
+  description     String?
+  scheduledDate   DateTime
+  status          TaskStatus   @default(pending)
+  
+  // Workout specific
+  exercises       Json?
+  setsCompleted   Int?
+  
+  // Meal specific
+  mealType        String?
+  calories        Int?
+  
+  // Completion data
+  completedAt     DateTime?
+  notes           String?
+  mediaUrls       String[]
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([clientId])
+  @@index([planId])
+  @@index([scheduledDate])
+  @@index([status])
+}
+
+enum TaskType {
+  workout
+  meal
+  cardio
+  supplement
+}
+
+enum TaskStatus {
+  pending
+  complete
+  partial
+  missed
+  locked
+}
+
+// ================================
+// CMS LIBRARY
+// ================================
+
+model Exercise {
+  id                         String   @id @default(cuid())
+  name                       String
+  category                   String
+  muscleGroup                String
+  equipment                  String
+  difficulty                 ExerciseDifficulty
+  description                String?
+  videoUrl                   String?
+  contraindicatedConditions  String[]
+  
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([muscleGroup])
+  @@index([category])
+  @@index([difficulty])
+}
+
+enum ExerciseDifficulty {
+  Beginner
+  Intermediate
+  Advanced
+}
+
+model Food {
+  id              String   @id @default(cuid())
+  name            String
+  category        String
+  calories        Int
+  protein         Float
+  carbs           Float
+  fat             Float
+  servingSize     String?
+  servingUnit     String?
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+}
+
+// ================================
+// GOALS & TRACKING
+// ================================
+
+model Goal {
+  id              String       @id @default(cuid())
+  clientId        String
+  client          ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  type            GoalType
+  title           String
+  description     String?
+  targetValue     Float
+  currentValue    Float        @default(0)
+  unit            String
+  measurementType String?
+  deadline        DateTime
+  status          GoalStatus   @default(active)
+  progress        Float        @default(0)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  completedAt     DateTime?
+
+  @@index([clientId])
+  @@index([status])
+  @@index([type])
+}
+
+enum GoalType {
+  weight
+  measurement
+  performance
+  habit
+}
+
+enum GoalStatus {
+  active
+  completed
+  abandoned
+}
+
+model Measurement {
+  id        String        @id @default(cuid())
+  clientId  String
+  client    ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  date      DateTime
+  weight    Float?
+  chest     Float?
+  waist     Float?
+  hips      Float?
+  arms      Float?
+  thighs    Float?
+  calves    Float?
+  neck      Float?
+  
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([clientId])
+  @@index([date])
+}
+
+model ProgressPhoto {
+  id        String        @id @default(cuid())
+  clientId  String
+  client    ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  type      PhotoType
+  url       String
+  date      DateTime
+  notes     String?
+  
+  createdAt DateTime      @default(now())
+
+  @@index([clientId])
+  @@index([date])
+}
+
+enum PhotoType {
+  front
+  side
+  back
+  custom
+}
+
+// ================================
+// QUESTIONNAIRES
+// ================================
+
+model QuestionnaireResponse {
+  id            String        @id @default(cuid())
+  clientId      String
+  client        ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  templateId    String
+  templateName  String
+  templateType  String
+  responses     Json
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([clientId])
+  @@index([templateId])
+  @@index([createdAt])
+}
+
+// ================================
+// MESSAGING
+// ================================
+
+model Message {
+  id          String   @id @default(cuid())
+  chatId      String
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  senderRole  UserRole
+  
+  message     String   @db.Text
+  read        Boolean  @default(false)
+  
+  // Attachments stored as JSON
+  attachments Json?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([chatId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([read])
+}
+
+model TypingStatus {
+  id        String   @id @default(cuid())
+  chatId    String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isTyping  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([chatId, userId])
+  @@index([chatId])
+}
+
+model PresenceStatus {
+  id        String          @id @default(cuid())
+  userId    String          @unique
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    PresenceType    @default(offline)
+  lastSeen  DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([status])
+}
+
+enum PresenceType {
+  online
+  away
+  offline
+}
+
+// ================================
+// ALERTS & NOTIFICATIONS
+// ================================
+
+model Alert {
+  id          String       @id @default(cuid())
+  clientId    String
+  coachId     String
+  coach       User         @relation(fields: [coachId], references: [id])
+  
+  type        AlertType
+  severity    AlertSeverity
+  title       String
+  message     String       @db.Text
+  data        Json?
+  
+  isResolved  Boolean      @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  action      String?
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([clientId])
+  @@index([coachId])
+  @@index([isResolved])
+  @@index([severity])
+  @@index([type])
+}
+
+enum AlertType {
+  low_adherence
+  very_low_adherence
+  missed_checkin
+  progress_plateau
+  goal_milestone
+  plan_expiring
+}
+
+enum AlertSeverity {
+  low
+  medium
+  high
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String            @db.Text
+  data      Json?
+  read      Boolean           @default(false)
+  sentAt    DateTime?
+  
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([read])
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  new_message
+  plan_assigned
+  task_reminder
+  goal_achieved
+  alert_generated
+  coach_feedback
+  system_update
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ================================
+// PAYMENTS
+// ================================
+
+model ProgramOffer {
+  id              String   @id @default(cuid())
+  coachId         String
+  coach           User     @relation(fields: [coachId], references: [id])
+  
+  name            String
+  description     String   @db.Text
+  price           Int
+  currency        String   @default("usd")
+  duration        Int
+  durationUnit    DurationUnit
+  features        String[]
+  isActive        Boolean  @default(true)
+  
+  stripePriceId   String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  subscriptions   Subscription[]
+
+  @@index([coachId])
+  @@index([isActive])
+}
+
+enum DurationUnit {
+  days
+  weeks
+  months
+}
+
+model Subscription {
+  id                String        @id @default(cuid())
+  clientId          String
+  client            ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  offerId           String
+  offer             ProgramOffer  @relation(fields: [offerId], references: [id])
+  
+  status            SubscriptionStatus @default(pending)
+  startDate         DateTime?
+  endDate           DateTime?
+  
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  stripePriceId         String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relationships
+  payments          Payment[]
+
+  @@index([clientId])
+  @@index([offerId])
+  @@index([status])
+}
+
+enum SubscriptionStatus {
+  pending
+  active
+  paused
+  cancelled
+  expired
+}
+
+model Payment {
+  id                String       @id @default(cuid())
+  subscriptionId    String
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  amount            Int
+  currency          String       @default("usd")
+  status            PaymentStatus @default(pending)
+  
+  stripePaymentIntentId String?  @unique
+  
+  paidAt            DateTime?
+  failedAt          DateTime?
+  errorMessage      String?
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+enum PaymentStatus {
+  pending
+  processing
+  succeeded
+  failed
+  refunded
+}
+
+// ================================
+// MEDIA UPLOADS
+// ================================
+
+model UploadedFile {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  filename    String
+  mimeType    String
+  size        Int
+  url         String
+  storageKey  String?
+  type        FileType
+  
+  uploadedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+}
+
+enum FileType {
+  image
+  video
+  document
+}
