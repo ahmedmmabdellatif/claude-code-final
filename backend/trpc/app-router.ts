@@ -28,18 +28,61 @@ import { clientDetailProcedure } from "./routes/coach/client-detail/route";
 import { aiSuggestionsProcedure } from "./routes/coach/ai-suggestions/route";
 import { assignPlanProcedure } from "./routes/coach/assign-plan/route";
 import { createClientProcedure } from "./routes/coach/create-client/route";
-import { 
-  listExercisesProcedure, 
-  createExerciseProcedure, 
-  updateExerciseProcedure, 
-  deleteExerciseProcedure 
+import {
+  listExercisesProcedure,
+  createExerciseProcedure,
+  updateExerciseProcedure,
+  deleteExerciseProcedure
 } from "./routes/cms/exercises/route";
-import { 
-  listFoodsProcedure, 
-  createFoodProcedure, 
-  updateFoodProcedure, 
-  deleteFoodProcedure 
+import {
+  listFoodsProcedure,
+  createFoodProcedure,
+  updateFoodProcedure,
+  deleteFoodProcedure
 } from "./routes/cms/foods/route";
+import {
+  listWarmupExercisesProcedure,
+  createWarmupExerciseProcedure,
+  updateWarmupExerciseProcedure,
+  deleteWarmupExerciseProcedure,
+} from "./routes/cms/warmup-exercises/route";
+import {
+  listWorkoutExercisesProcedure,
+  createWorkoutExerciseProcedure,
+  updateWorkoutExerciseProcedure,
+  deleteWorkoutExerciseProcedure,
+} from "./routes/cms/workout-exercises/route";
+import {
+  listStretchingExercisesProcedure,
+  createStretchingExerciseProcedure,
+  updateStretchingExerciseProcedure,
+  deleteStretchingExerciseProcedure,
+} from "./routes/cms/stretching-exercises/route";
+import {
+  listCardioProtocolsProcedure,
+  createCardioProtocolProcedure,
+  updateCardioProtocolProcedure,
+  deleteCardioProtocolProcedure,
+} from "./routes/cms/cardio-protocols/route";
+import {
+  listFoodNutritionProcedure,
+  createFoodNutritionProcedure,
+  updateFoodNutritionProcedure,
+  deleteFoodNutritionProcedure,
+} from "./routes/cms/nutrition/route";
+import {
+  listRecipesProcedure,
+  createRecipeProcedure,
+  updateRecipeProcedure,
+  deleteRecipeProcedure,
+} from "./routes/cms/recipes/route";
+import {
+  listSupplementsProcedure,
+  createSupplementProcedure,
+  updateSupplementProcedure,
+  deleteSupplementProcedure,
+} from "./routes/cms/supplements/route";
+import { getHydrationGuidelinesProcedure } from "./routes/cms/hydration/route";
 import { coachAlertsProcedure, resolveAlertProcedure } from "./routes/coach/alerts/route";
 import { getTemplateProcedure } from "./routes/questionnaires/getTemplate/route";
 import { submitProcedure } from "./routes/questionnaires/submit/route";
@@ -139,6 +182,7 @@ export const appRouter = createTRPCRouter({
     resolve: resolveAlertNewProcedure,
   }),
   cms: createTRPCRouter({
+    // Legacy exercises and foods (keep for backwards compatibility)
     listExercises: listExercisesProcedure,
     createExercise: createExerciseProcedure,
     updateExercise: updateExerciseProcedure,
@@ -147,6 +191,51 @@ export const appRouter = createTRPCRouter({
     createFood: createFoodProcedure,
     updateFood: updateFoodProcedure,
     deleteFood: deleteFoodProcedure,
+
+    // Warmup Exercises
+    listWarmupExercises: listWarmupExercisesProcedure,
+    createWarmupExercise: createWarmupExerciseProcedure,
+    updateWarmupExercise: updateWarmupExerciseProcedure,
+    deleteWarmupExercise: deleteWarmupExerciseProcedure,
+
+    // Workout Exercises
+    listWorkoutExercises: listWorkoutExercisesProcedure,
+    createWorkoutExercise: createWorkoutExerciseProcedure,
+    updateWorkoutExercise: updateWorkoutExerciseProcedure,
+    deleteWorkoutExercise: deleteWorkoutExerciseProcedure,
+
+    // Stretching Exercises
+    listStretchingExercises: listStretchingExercisesProcedure,
+    createStretchingExercise: createStretchingExerciseProcedure,
+    updateStretchingExercise: updateStretchingExerciseProcedure,
+    deleteStretchingExercise: deleteStretchingExerciseProcedure,
+
+    // Cardio Protocols
+    listCardioProtocols: listCardioProtocolsProcedure,
+    createCardioProtocol: createCardioProtocolProcedure,
+    updateCardioProtocol: updateCardioProtocolProcedure,
+    deleteCardioProtocol: deleteCardioProtocolProcedure,
+
+    // Food Nutrition
+    listFoodNutrition: listFoodNutritionProcedure,
+    createFoodNutrition: createFoodNutritionProcedure,
+    updateFoodNutrition: updateFoodNutritionProcedure,
+    deleteFoodNutrition: deleteFoodNutritionProcedure,
+
+    // Recipes
+    listRecipes: listRecipesProcedure,
+    createRecipe: createRecipeProcedure,
+    updateRecipe: updateRecipeProcedure,
+    deleteRecipe: deleteRecipeProcedure,
+
+    // Supplements
+    listSupplements: listSupplementsProcedure,
+    createSupplement: createSupplementProcedure,
+    updateSupplement: updateSupplementProcedure,
+    deleteSupplement: deleteSupplementProcedure,
+
+    // Hydration Guidelines (read-only)
+    getHydrationGuidelines: getHydrationGuidelinesProcedure,
   }),
   questionnaires: createTRPCRouter({
     getTemplate: getTemplateProcedure,

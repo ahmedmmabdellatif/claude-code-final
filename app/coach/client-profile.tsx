@@ -6,9 +6,10 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft,
   Calendar,
@@ -21,37 +22,9 @@ import { Card, Button, LineChartWrapper } from '@/components';
 import colors from '@/constants/colors';
 import typography from '@/constants/typography';
 import spacing from '@/constants/spacing';
+import { trpc } from '@/lib/trpc';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-
-const MOCK_CLIENT = {
-  id: 1,
-  name: 'Ahmed Hassan',
-  membershipNumber: '#1234',
-  email: 'ahmed@example.com',
-  age: 39,
-  height: 178,
-  currentWeight: 71.2,
-  startWeight: 73,
-  goal: 'Body Recomposition',
-  experience: 'Beginner',
-  trainingDays: 4,
-  location: 'Gym',
-  planStatus: 'active',
-  adherence: 85,
-  streakDays: 15,
-  startDate: 'Jan 1, 2025',
-  injuries: ['Lower Back', 'Knee'],
-  diet: 'Pescatarian',
-  weightHistory: [
-    { date: 'Jan 1', weight: 73 },
-    { date: 'Jan 8', weight: 72.5 },
-    { date: 'Jan 15', weight: 72.2 },
-    { date: 'Jan 22', weight: 71.8 },
-    { date: 'Jan 29', weight: 71.5 },
-    { date: 'Feb 5', weight: 71.2 },
-  ],
-};
 
 function InfoRow({ label, value }: { label: string; value: string | number }) {
   return (
@@ -81,7 +54,31 @@ function StatCard({
 }
 
 export default function ClientProfileScreen() {
-  const client = MOCK_CLIENT;
+  const params = useLocalSearchParams();
+  const clientId = params.id as string;
+
+  const { data, isLoading } = trpc.coach.clientDetail.useQuery(
+    { clientId: parseInt(clientId) },
+    { enabled: !!clientId }
+  );
+
+  if (isLoading || !data) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color={colors.text.primary} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Loading...</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const client = data.client;
 
 
 
@@ -100,17 +97,25 @@ export default function ClientProfileScreen() {
       <ScrollView style={styles.content}>
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>AH</Text>
+            <Text style={styles.avatarText}>
+              {client.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </Text>
           </View>
           <Text style={styles.clientName}>{client.name}</Text>
           <Text style={styles.membershipNumber}>{client.membershipNumber}</Text>
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: colors.semantic.success },
+              {
+                backgroundColor: client.planStatus === 'active'
+                  ? colors.semantic.success
+                  : colors.semantic.warning
+              },
             ]}
           >
-            <Text style={styles.statusText}>Active</Text>
+            <Text style={styles.statusText}>
+              {client.planStatus.charAt(0).toUpperCase() + client.planStatus.slice(1)}
+            </Text>
           </View>
         </Card>
 
@@ -248,6 +253,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.dark,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',

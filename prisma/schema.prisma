@@ -261,6 +261,235 @@ enum TaskStatus {
 // CMS LIBRARY
 // ================================
 
+// WARM-UP EXERCISES (15 exercises)
+model WarmupExercise {
+  id                        String   @id @default(cuid())
+  name                      String
+  category                  String
+  targetAreas               String[]
+  durationSeconds           Int?
+  reps                      Int?
+  sets                      Int
+  difficulty                String
+  equipment                 String
+  instructions              String[]
+  formCues                  String[]
+  benefits                  String[]
+  contraindications         String[]
+  videoUrl                  String?
+  thumbnailUrl              String?
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([category])
+  @@index([difficulty])
+}
+
+// WORKOUT EXERCISES (21 exercises - main strength training)
+model WorkoutExercise {
+  id                        String   @id @default(cuid())
+  name                      String
+  category                  String
+  movementType              String?
+  primaryMuscles            String[]
+  secondaryMuscles          String[]
+  difficulty                String
+  equipment                 String[]
+  instructions              String[]
+  formCues                  String[]
+  commonMistakes            String[]
+  contraindications         String[]
+  modifications             Json?
+  repRanges                 Json?
+  tempo                     String?
+  restSeconds               Int?
+  scientificNotes           Json[]
+  videoUrl                  String?
+  videoThumbnail            String?
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([category])
+  @@index([difficulty])
+}
+
+// STRETCHING EXERCISES (15 exercises)
+model StretchingExercise {
+  id                        String   @id @default(cuid())
+  name                      String
+  category                  String
+  targetMuscles             String[]
+  durationSeconds           Int
+  sets                      Int
+  difficulty                String
+  equipment                 String
+  instructions              String[]
+  formCues                  String[]
+  benefits                  String[]
+  contraindications         String[]
+  bestTime                  String?
+  videoUrl                  String?
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([category])
+  @@index([difficulty])
+}
+
+// CARDIO PROTOCOLS (10 protocols - LISS, MISS, HIIT)
+model CardioProtocol {
+  id                        String   @id @default(cuid())
+  name                      String
+  type                      String
+  intensity                 String
+  targetHeartRatePercentage String?
+  durationMinutes           Int
+  frequencyPerWeek          String
+  caloriesBurnedEstimate    String?
+  equipment                 Json
+  instructions              String[]
+  benefits                  String[]
+  bestFor                   String[]
+  contraindications         String[]
+  progression               String?
+  scientificNotes           Json[]
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([type])
+  @@index([intensity])
+}
+
+// NUTRITION DATABASE (28 food items)
+model FoodNutrition {
+  id                        String   @id @default(cuid())
+  name                      String
+  category                  String
+  servingSize               String
+
+  // Macronutrients
+  calories                  Int
+  proteinG                  Float
+  carbsG                    Float
+  fatG                      Float
+  fiberG                    Float?
+  omega3G                   Float?
+
+  // Micronutrients (stored as JSON for flexibility)
+  micronutrients            Json?
+
+  // Additional info
+  dietCompatibility         String[]
+  allergens                 String[]
+  preparationMethods        String[]
+  costRating                String?
+  bioavailabilityScore      Float?
+  scientificNotes           String?
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([category])
+}
+
+// RECIPES (7 recipes)
+model Recipe {
+  id                        String   @id @default(cuid())
+  name                      String
+  category                  String
+  mealType                  String
+  servings                  Int
+  prepTimeMinutes           Int
+  cookTimeMinutes           Int
+  totalTimeMinutes          Int
+  difficulty                String
+  dietCompatibility         String[]
+
+  // Total macros for the recipe
+  totalMacros               Json
+
+  // Ingredients (array of JSON objects with foodId references)
+  ingredients               Json[]
+
+  instructions              String[]
+  tips                      String[]
+  bestTime                  String?
+  storage                   String?
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([category])
+  @@index([mealType])
+}
+
+// SUPPLEMENTS (7 supplements - evidence-based only)
+model Supplement {
+  id                        String   @id @default(cuid())
+  name                      String
+  category                  String
+  primaryBenefit            String
+  dosage                    String
+  timing                    String[]
+  dailyFrequency            String
+  evidenceLevel             String
+  costRating                String
+  necessityRating           Json
+  benefits                  String[]
+  sideEffects               String[]
+  contraindications         String[]
+  alternatives              String[]
+  loadingPhase              Json?
+  scientificNotes           Json[]
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([category])
+  @@index([evidenceLevel])
+}
+
+// HYDRATION GUIDELINES (single configuration object)
+model HydrationGuideline {
+  id                        String   @id @default(cuid())
+  baselineRecommendations   Json
+  factorsIncreasingNeeds    Json[]
+  timingRecommendations     Json
+  hydrationAssessment       Json
+  specialPopulations        Json
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+// SCIENTIFIC REFERENCES (10 references for citations)
+model ScientificReference {
+  id                        String   @id @default(cuid())
+  title                     String
+  authors                   String[]
+  journal                   String?
+  year                      Int
+  volume                    String?
+  issue                     String?
+  pages                     String?
+  doi                       String?
+  pmid                      String?
+  keyFindings               String[]
+  relevance                 String?
+  organization              String?
+  url                       String?
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([year])
+}
+
+// LEGACY MODELS - Kept for backward compatibility
 model Exercise {
   id                         String   @id @default(cuid())
   name                       String
@@ -271,7 +500,7 @@ model Exercise {
   description                String?
   videoUrl                   String?
   contraindicatedConditions  String[]
-  
+
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -297,7 +526,7 @@ model Food {
   servingSize     String?
   servingUnit     String?
   notes           String?
-  
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
