@@ -44,7 +44,10 @@ export default function CoachDashboard() {
       <ScrollView>
         <View style={styles.header}>
           <Text style={styles.title}>Coach Dashboard</Text>
-          <Pressable style={styles.notificationButton}>
+          <Pressable
+            style={styles.notificationButton}
+            onPress={() => router.push('/coach/alerts' as never)}
+          >
             <Bell size={24} color={colors.text.primary} />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>3</Text>
