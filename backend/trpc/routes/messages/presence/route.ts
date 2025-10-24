@@ -2,19 +2,19 @@ import { z } from 'zod';
 import { publicProcedure } from '../../../create-context';
 
 interface PresenceStatus {
-  userId: number;
+  userId: string;
   status: 'online' | 'offline' | 'away';
   lastSeen: number;
 }
 
-const presenceStatuses: Map<number, PresenceStatus> = new Map();
+const presenceStatuses: Map<string, PresenceStatus> = new Map();
 
 const ONLINE_TIMEOUT = 30000;
 
 export const updatePresenceProcedure = publicProcedure
   .input(
     z.object({
-      userId: z.number(),
+      userId: z.string(),
       status: z.enum(['online', 'offline', 'away']),
     })
   )
@@ -31,7 +31,7 @@ export const updatePresenceProcedure = publicProcedure
 export const getPresenceProcedure = publicProcedure
   .input(
     z.object({
-      userId: z.number(),
+      userId: z.string(),
     })
   )
   .query(async ({ input }) => {
@@ -58,12 +58,12 @@ export const getPresenceProcedure = publicProcedure
 export const heartbeatProcedure = publicProcedure
   .input(
     z.object({
-      userId: z.number(),
+      userId: z.string(),
     })
   )
   .mutation(async ({ input }) => {
     const presence = presenceStatuses.get(input.userId);
-    
+
     if (presence) {
       presence.lastSeen = Date.now();
       presence.status = 'online';
