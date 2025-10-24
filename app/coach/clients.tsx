@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -14,6 +15,7 @@ import { Card } from '@/components';
 import colors from '@/constants/colors';
 import typography from '@/constants/typography';
 import spacing from '@/constants/spacing';
+import { trpc } from '@/lib/trpc';
 
 interface Client {
   id: number;
@@ -26,64 +28,6 @@ interface Client {
   startDate: string;
   goal: string;
 }
-
-const MOCK_CLIENTS: Client[] = [
-  {
-    id: 1,
-    name: 'Ahmed Hassan',
-    membershipNumber: '#1234',
-    planStatus: 'active',
-    adherence: 85,
-    lastCheckin: '2 hours ago',
-    email: 'ahmed@example.com',
-    startDate: 'Jan 1, 2025',
-    goal: 'Body Recomposition',
-  },
-  {
-    id: 2,
-    name: 'Sarah Mohamed',
-    membershipNumber: '#1235',
-    planStatus: 'active',
-    adherence: 92,
-    lastCheckin: '1 day ago',
-    email: 'sarah@example.com',
-    startDate: 'Dec 15, 2024',
-    goal: 'Build Muscle',
-  },
-  {
-    id: 3,
-    name: 'Omar Ali',
-    membershipNumber: '#1236',
-    planStatus: 'pending',
-    adherence: 0,
-    lastCheckin: 'Never',
-    email: 'omar@example.com',
-    startDate: 'Feb 1, 2025',
-    goal: 'Fat Loss',
-  },
-  {
-    id: 4,
-    name: 'Fatima Khalil',
-    membershipNumber: '#1237',
-    planStatus: 'active',
-    adherence: 78,
-    lastCheckin: '5 hours ago',
-    email: 'fatima@example.com',
-    startDate: 'Jan 10, 2025',
-    goal: 'Build Muscle',
-  },
-  {
-    id: 5,
-    name: 'Youssef Ibrahim',
-    membershipNumber: '#1238',
-    planStatus: 'paused',
-    adherence: 65,
-    lastCheckin: '1 week ago',
-    email: 'youssef@example.com',
-    startDate: 'Dec 1, 2024',
-    goal: 'Body Recomposition',
-  },
-];
 
 function ClientCard({ client }: { client: Client }) {
   const getStatusColor = (status: Client['planStatus']) => {
@@ -175,11 +119,30 @@ export default function ClientsListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | Client['planStatus']>('all');
 
-  const filteredClients = MOCK_CLIENTS.filter((client) => {
+  const { data, isLoading } = trpc.coach.clients.useQuery();
+  const allClients = data?.clients || [];
+
+  const filteredClients = allClients.filter((client) => {
     const matchesSearch = client.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || client.planStatus === filterStatus;
     return matchesSearch && matchesFilter;
   });
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color={colors.text.primary} />
+          </Pressable>
+          <Text style={styles.headerTitle}>All Clients</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -244,6 +207,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.dark,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',

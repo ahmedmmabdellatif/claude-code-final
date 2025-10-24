@@ -24,6 +24,7 @@ export default function CreateClientScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const utils = trpc.useUtils();
   const createClientMutation = trpc.coach.createClient.useMutation();
 
   const handleCreateClient = async () => {
@@ -44,6 +45,9 @@ export default function CreateClientScreen() {
         email: email.trim().toLowerCase(),
         password,
       });
+
+      // Invalidate clients query to refresh all client lists
+      await utils.coach.clients.invalidate();
 
       Alert.alert('Success', 'Client created successfully!', [
         {
